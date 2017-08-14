@@ -1,0 +1,14 @@
+rawData
+data
+validation
+.ipynb_checkpoints/
+
+Graph-fine/
+Graph/
+__pycache__/
+
+*.h5
+*.pb
+*.mlmodel
+*.model
+*.npy
