@@ -11,15 +11,10 @@ import keras.callbacks
 
 import matplotlib.pyplot as plt
 import math
-import cv2
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-
-import json
 
 img_width, img_height = 224, 224
 
-def train_top(bottleneck_train, bottleneck_validation, train_data_dir='data', validation_data_dir='validation', optimizer='rmsprop', epochs=50, output='out.h5'):
+def train_top(train_data, validation_data, train_data_dir='data', validation_data_dir='validation', optimizer='rmsprop', batch_size=32, epochs=50, output='out.h5'):
     datagen_top = ImageDataGenerator(rescale=1. / 255)
     generator_training_top = datagen_top.flow_from_directory(
         train_data_dir,
