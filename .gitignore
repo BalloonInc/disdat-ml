@@ -1,6 +1,6 @@
 rawData
-data
-validation
+*data/
+*validation/
 .ipynb_checkpoints/
 
 logs*/
