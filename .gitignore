@@ -3,12 +3,14 @@ data
 validation
 .ipynb_checkpoints/
 
-Graph-fine/
-Graph/
+logs*/
+
 __pycache__/
+
+
 
 *.h5
 *.pb
 *.mlmodel
-*.model
 *.npy
+*.pyc

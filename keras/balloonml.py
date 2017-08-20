@@ -10,9 +10,32 @@ from keras.optimizers import SGD, RMSprop
 import keras.callbacks
 
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
 import math
+import cv2
 
 img_width, img_height = 224, 224
+
+def bottleneck(model,data_dir,output, batch_size):
+    datagen = ImageDataGenerator(rescale=1. / 255)
+
+    bottleneckGenerator = datagen.flow_from_directory(
+        data_dir,
+        target_size=(img_width, img_height),
+        batch_size=batch_size,
+        class_mode=None,
+        shuffle=False)
+
+    nb_samples = len(bottleneckGenerator.filenames)
+
+    predict_size = int(math.ceil(nb_samples / batch_size))
+
+    bottleneck_features = model.predict_generator(bottleneckGenerator, predict_size)
+
+    np.save(output+'.npy', bottleneck_features)
+    return bottleneck_features
+
 
 def train_top(train_data, validation_data, train_data_dir='data', validation_data_dir='validation', optimizer='rmsprop', batch_size=32, epochs=50, output='out.h5'):
     datagen_top = ImageDataGenerator(rescale=1. / 255)
@@ -72,8 +95,85 @@ def train_top(train_data, validation_data, train_data_dir='data', validation_dat
 
     print("[INFO] accuracy: {:.2f}%".format(eval_accuracy * 100))
     print("[INFO] Loss: {}".format(eval_loss))
-    return history
+    return history, model
 
+def finetune(train_data_dir='data', validation_data_dir='validation', optimizer='rmsprop', weights_top_layer='out.h5', batch_size=32, epochs=5, output='out-refined'):
+    base_model = VGG16(include_top=False, weights='imagenet', input_shape=(224,224,3))
+
+    datagen_top = ImageDataGenerator(rescale=1. / 255)
+    generator_training_top = datagen_top.flow_from_directory(
+        train_data_dir,
+        target_size=(img_width, img_height),
+        batch_size=batch_size,
+        class_mode='categorical',
+        shuffle=False)
+
+    num_classes = len(generator_training_top.class_indices)
+    
+    # build a classifier model to put on top of the convolutional model
+    top_model = Sequential()
+    top_model.add(Flatten(input_shape=base_model.output_shape[1:]))
+    top_model.add(Dense(256, activation='relu'))
+    top_model.add(Dropout(0.5))
+    top_model.add(Dense(num_classes, activation='sigmoid'))
+
+    # note that it is necessary to start with a fully-trained
+    # classifier, including the top classifier,
+    # in order to successfully do fine-tuning
+    top_model.load_weights(config['output']+'.h5')
+
+    # add the model on top of the convolutional base
+    model = Model(inputs=base_model.input, outputs=top_model(base_model.output))
+    
+    # set the first 25 layers (up to the last conv block)
+    # to non-trainable (weights will not be updated)
+    for layer in model.layers[:15]:
+        layer.trainable = False
+
+    # compile the model with a SGD/momentum optimizer
+    # and a very slow learning rate.
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=optimizer,
+                  metrics=['accuracy'])
+    
+    train_datagen = ImageDataGenerator(
+            rescale=1./255,
+            shear_range=0.2,
+            zoom_range=0.2,
+            horizontal_flip=True)
+
+    test_datagen = ImageDataGenerator(rescale=1./255)
+
+    train_generator = train_datagen.flow_from_directory(
+            train_data_dir,
+            target_size=(img_height, img_width),
+            batch_size=batch_size,
+            class_mode='categorical')
+
+    validation_generator = test_datagen.flow_from_directory(
+            validation_data_dir,
+            target_size=(img_height, img_width),
+            batch_size=config['batch_size'],
+            class_mode='categorical')
+
+    nb_train_samples = len(train_generator.filenames)
+
+    nb_validation_samples = len(validation_generator.filenames)
+
+    tbCallBack = keras.callbacks.TensorBoard(log_dir='./logs/'+output, histogram_freq=0, write_graph=True, write_images=True)
+
+    # fine-tune the model
+    history = model.fit_generator(
+            train_generator,
+            steps_per_epoch=nb_train_samples // batch_size,
+            epochs=epochs,
+            validation_data=validation_generator,
+            validation_steps=nb_validation_samples // batch_size,
+            callbacks=[tbCallBack])
+
+    model.save_weights(output+".h5")
+    return history, model
+    
 def plotResult(history):
     plt.figure(1)
 
