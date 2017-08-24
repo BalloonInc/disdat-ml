@@ -21,6 +21,7 @@ calculator
 camera
 car
 carrot
+cassette tape
 cat
 cauliflower
 church
@@ -38,6 +39,7 @@ drums
 face
 fish
 flower
+foot
 giraffe
 glasses
 grass
@@ -49,6 +51,7 @@ hamburger
 hammer
 handbag
 hat
+headphones
 heart
 house
 juwels
@@ -64,6 +67,7 @@ mushroom
 necklace
 onion
 pan
+paper
 pear
 pen
 pencil
@@ -71,6 +75,7 @@ piano
 pillow
 pineapple
 pizza
+plate
 potato
 pumpkin
 puzzle
@@ -78,6 +83,7 @@ radiator
 radio
 ring
 ruler
+screw
 screwdriver
 sculpture
 shoe

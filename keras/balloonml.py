@@ -2,7 +2,7 @@ import numpy as np
 from keras.preprocessing.image import ImageDataGenerator, img_to_array, load_img
 from keras.applications.vgg16 import VGG16, preprocess_input
 
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers import Dropout, Flatten, Dense
 from keras import applications
 from keras.utils.np_utils import to_categorical
@@ -13,9 +13,13 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 import math
+import operator
 import cv2
 
 img_width, img_height = 224, 224
+
+def version():
+    return "1.0"
 
 def bottleneck(model,data_dir,output, batch_size):
     datagen = ImageDataGenerator(rescale=1. / 255)
@@ -33,7 +37,7 @@ def bottleneck(model,data_dir,output, batch_size):
 
     bottleneck_features = model.predict_generator(bottleneckGenerator, predict_size)
 
-    np.save(output+'.npy', bottleneck_features)
+    np.save(output, bottleneck_features)
     return bottleneck_features
 
 
@@ -72,7 +76,7 @@ def train_top(train_data, validation_data, train_data_dir='data', validation_dat
     model.add(Flatten(input_shape=train_data.shape[1:]))
     model.add(Dense(256, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='sigmoid'))
+    model.add(Dense(num_classes, activation='softmax'))
 
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
@@ -115,12 +119,12 @@ def finetune(train_data_dir='data', validation_data_dir='validation', optimizer=
     top_model.add(Flatten(input_shape=base_model.output_shape[1:]))
     top_model.add(Dense(256, activation='relu'))
     top_model.add(Dropout(0.5))
-    top_model.add(Dense(num_classes, activation='sigmoid'))
+    top_model.add(Dense(num_classes, activation='softmax'))
 
     # note that it is necessary to start with a fully-trained
     # classifier, including the top classifier,
     # in order to successfully do fine-tuning
-    top_model.load_weights(config['output']+'.h5')
+    top_model.load_weights(weights_top_layer)
 
     # add the model on top of the convolutional base
     model = Model(inputs=base_model.input, outputs=top_model(base_model.output))
@@ -153,7 +157,7 @@ def finetune(train_data_dir='data', validation_data_dir='validation', optimizer=
     validation_generator = test_datagen.flow_from_directory(
             validation_data_dir,
             target_size=(img_height, img_width),
-            batch_size=config['batch_size'],
+            batch_size=batch_size,
             class_mode='categorical')
 
     nb_train_samples = len(train_generator.filenames)
@@ -162,6 +166,8 @@ def finetune(train_data_dir='data', validation_data_dir='validation', optimizer=
 
     tbCallBack = keras.callbacks.TensorBoard(log_dir='./logs/'+output, histogram_freq=0, write_graph=True, write_images=True)
 
+    saveCallBack = keras.callbacks.ModelCheckpoint(output+'-ep{epoch:02d}-valacc{val_acc:.2f}.h5', monitor='val_acc', save_best_only=True, save_weights_only=True)
+
     # fine-tune the model
     history = model.fit_generator(
             train_generator,
@@ -169,7 +175,7 @@ def finetune(train_data_dir='data', validation_data_dir='validation', optimizer=
             epochs=epochs,
             validation_data=validation_generator,
             validation_steps=nb_validation_samples // batch_size,
-            callbacks=[tbCallBack])
+            callbacks=[tbCallBack, saveCallBack])
 
     model.save_weights(output+".h5")
     return history, model
@@ -199,17 +205,11 @@ def plotResult(history):
     plt.show()   
 
 
-def predict(image_path, top_model_weights_path):
-    # load the class_indices saved in the earlier step
-    class_dictionary = np.load('class_indices.npy').item()
-
+def predict_top(image_path, top_model_weights_path, class_dictionary):
     num_classes = len(class_dictionary)
-
-    # add the path to your test image below
 
     orig = cv2.imread(image_path)
 
-    print("[INFO] loading and preprocessing image...")
     image = load_img(image_path, target_size=(224, 224))
     image = img_to_array(image)
 
@@ -229,7 +229,7 @@ def predict(image_path, top_model_weights_path):
     model.add(Flatten(input_shape=bottleneck_prediction.shape[1:]))
     model.add(Dense(256, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='sigmoid'))
+    model.add(Dense(num_classes, activation='softmax'))
 
     model.load_weights(top_model_weights_path)
 
@@ -238,10 +238,24 @@ def predict(image_path, top_model_weights_path):
     # classification
     class_predicted = model.predict_classes(bottleneck_prediction)
 
-    probabilities = model.predict_proba(bottleneck_prediction)
-    print(probabilities)
-    inID = class_predicted[0]
+    prediction = model.predict_proba(bottleneck_prediction)
 
-    inv_map = {v: k for k, v in class_dictionary.items()}
-    label = inv_map[inID]
-    return label
+    predictions = {list(class_dictionary.keys())[list(class_dictionary.values()).index(idx)]:val for (idx, val) in enumerate(prediction[0])}
+    sorted_predictions = sorted(predictions.items(), key=operator.itemgetter(1))
+    sorted_predictions.reverse()
+    return sorted_predictions[0:4]
+
+def predict_fine(model, class_dictionary, img_path='test_images/keyboard.jpg'):
+    image = load_img(img_path, target_size=(224, 224))
+    image = img_to_array(image)
+
+    # important! otherwise the predictions will be '0'
+    image = image / 255
+
+    image = np.expand_dims(image, axis=0)
+
+    prediction = model.predict(image)
+    predictions = {list(class_dictionary.keys())[list(class_dictionary.values()).index(idx)]:val for (idx, val) in enumerate(prediction[0])}
+    sorted_predictions = sorted(predictions.items(), key=operator.itemgetter(1))
+    sorted_predictions.reverse()
+    return sorted_predictions[0:4]
