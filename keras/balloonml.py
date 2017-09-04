@@ -76,7 +76,7 @@ def train_top(train_data, validation_data, train_data_dir='data', validation_dat
     model.add(Flatten(input_shape=train_data.shape[1:]))
     model.add(Dense(256, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='softmax'))
+    model.add(Dense(num_classes, activation='sigmoid'))
 
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
@@ -119,7 +119,7 @@ def finetune(train_data_dir='data', validation_data_dir='validation', optimizer=
     top_model.add(Flatten(input_shape=base_model.output_shape[1:]))
     top_model.add(Dense(256, activation='relu'))
     top_model.add(Dropout(0.5))
-    top_model.add(Dense(num_classes, activation='softmax'))
+    top_model.add(Dense(num_classes, activation='sigmoid'))
 
     # note that it is necessary to start with a fully-trained
     # classifier, including the top classifier,
@@ -229,7 +229,7 @@ def predict_top(image_path, top_model_weights_path, class_dictionary):
     model.add(Flatten(input_shape=bottleneck_prediction.shape[1:]))
     model.add(Dense(256, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(num_classes, activation='softmax'))
+    model.add(Dense(num_classes, activation='sigmoid'))
 
     model.load_weights(top_model_weights_path)
 
