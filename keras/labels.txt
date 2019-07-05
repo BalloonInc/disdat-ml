@@ -1,5 +1,6 @@
 adhesive tape
 apple
+backpack
 ball
 balloon
 banana
@@ -7,6 +8,8 @@ basketball
 bath
 beach
 bed
+beer bottle
+beer glass
 bicycle
 bird
 blackboard
@@ -23,10 +26,14 @@ car
 carrot
 cat
 cauliflower
+cell phone
+chair
+champagne glass
 church
 clock
 closet
 cloud
+coffee cup 
 coin
 computer mouse
 curtain
@@ -35,6 +42,7 @@ dog
 dress
 drill
 drums
+egg
 face
 fish
 flower
@@ -51,6 +59,7 @@ handbag
 hat
 heart
 house
+ice cream
 juwels
 key
 keyboard
@@ -63,6 +72,7 @@ mosquito
 mushroom
 necklace
 onion
+orange juice
 pan
 pear
 pen
@@ -71,6 +81,7 @@ piano
 pillow
 pineapple
 pizza
+plant
 potato
 pumpkin
 puzzle
@@ -87,6 +98,7 @@ skiing
 soap
 soccer
 sock
+soda can
 sofa
 spacesuit
 spaghetti
@@ -102,3 +114,7 @@ tree
 trousers
 umbrella
 vase
+water bottle
+water glass
+wine bottle
+wine glass
